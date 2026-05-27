@@ -1,0 +1,10 @@
+{
+  "name": "livemarkdowneditor",
+  "version": "1.0.0",
+  "description": "Split-screen markdown editor with live editable preview",
+  "scripts": {
+    "start": "" 
+  },
+  "author": "",
+  "license": "MIT"
+}
