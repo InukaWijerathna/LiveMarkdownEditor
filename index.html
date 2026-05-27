@@ -1,0 +1,581 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Markdown Studio</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+            mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
+          },
+          boxShadow: {
+            soft: '0 20px 60px rgba(15, 23, 42, 0.18)',
+          },
+        },
+      },
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.5/dist/purify.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/turndown/dist/turndown.min.js"></script>
+  <style>
+    :root {
+      color-scheme: light;
+    }
+    html.dark {
+      color-scheme: dark;
+    }
+    body {
+      background:
+        radial-gradient(circle at top left, rgba(59, 130, 246, 0.16), transparent 30%),
+        radial-gradient(circle at top right, rgba(14, 165, 233, 0.12), transparent 26%),
+        linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
+    }
+    html.dark body {
+      background:
+        radial-gradient(circle at top left, rgba(59, 130, 246, 0.16), transparent 30%),
+        radial-gradient(circle at top right, rgba(14, 165, 233, 0.12), transparent 26%),
+        linear-gradient(180deg, #020617 0%, #0f172a 100%);
+    }
+    .glass {
+      backdrop-filter: blur(18px);
+      background: rgba(255, 255, 255, 0.72);
+    }
+    html.dark .glass {
+      background: rgba(15, 23, 42, 0.68);
+    }
+    .preview h1, .preview h2, .preview h3 {
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin: 1.1em 0 0.45em;
+    }
+    .preview h1 { font-size: 2rem; }
+    .preview h2 { font-size: 1.55rem; }
+    .preview h3 { font-size: 1.2rem; }
+    .preview p { margin: 0.8em 0; line-height: 1.75; }
+    .preview a { color: #2563eb; text-decoration: underline; text-underline-offset: 3px; }
+    html.dark .preview a { color: #60a5fa; }
+    .preview ul, .preview ol { margin: 0.8em 0 0.8em 1.25em; padding-left: 1rem; }
+    .preview li { margin: 0.3em 0; }
+    .preview blockquote {
+      border-left: 4px solid #cbd5e1;
+      padding-left: 1rem;
+      margin: 1rem 0;
+      color: #475569;
+    }
+    html.dark .preview blockquote {
+      border-left-color: #475569;
+      color: #cbd5e1;
+    }
+    .preview pre {
+      overflow: auto;
+      padding: 1rem;
+      border-radius: 1rem;
+      background: #0f172a;
+      color: #e2e8f0;
+      font-size: 0.92rem;
+      line-height: 1.6;
+      margin: 1rem 0;
+    }
+    .preview code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.92em;
+      background: rgba(148, 163, 184, 0.18);
+      padding: 0.16rem 0.36rem;
+      border-radius: 0.4rem;
+    }
+    .preview pre code { background: transparent; padding: 0; }
+    .preview table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1rem 0;
+      overflow: hidden;
+      border-radius: 1rem;
+    }
+    .preview th, .preview td {
+      border: 1px solid rgba(148, 163, 184, 0.28);
+      padding: 0.7rem 0.85rem;
+      text-align: left;
+    }
+    .preview th { background: rgba(148, 163, 184, 0.12); }
+    .preview img { max-width: 100%; border-radius: 1rem; }
+    .editor-scroll::-webkit-scrollbar, .preview-scroll::-webkit-scrollbar { width: 12px; height: 12px; }
+    .editor-scroll::-webkit-scrollbar-thumb, .preview-scroll::-webkit-scrollbar-thumb {
+      background: rgba(100, 116, 139, 0.35);
+      border-radius: 999px;
+      border: 3px solid transparent;
+      background-clip: content-box;
+    }
+    .editor-scroll::-webkit-scrollbar-track, .preview-scroll::-webkit-scrollbar-track { background: transparent; }
+    [contenteditable="true"]:focus { outline: none; }
+    .toolbar-btn[aria-pressed="true"] { background: rgba(59, 130, 246, 0.14); color: #2563eb; }
+    html.dark .toolbar-btn[aria-pressed="true"] { background: rgba(96, 165, 250, 0.16); color: #93c5fd; }
+  </style>
+</head>
+<body class="min-h-screen font-sans text-slate-900 dark:text-slate-100">
+  <div class="mx-auto flex min-h-screen max-w-[1600px] flex-col px-3 py-3 sm:px-4 sm:py-4">
+    <header class="glass mb-3 rounded-3xl border border-white/60 px-4 py-4 shadow-soft dark:border-slate-700/60 sm:px-5">
+      <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <div class="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400">Markdown Studio</div>
+          <h1 class="mt-1 text-2xl font-black tracking-tight sm:text-3xl">A split-screen markdown editor with live editable preview</h1>
+          <p class="mt-2 max-w-3xl text-sm text-slate-600 dark:text-slate-300">
+            Edit source on the left, click directly into the rendered preview on the right, and keep both sides in sync in real time.
+          </p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <button id="openBtn" class="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">Open</button>
+          <button id="saveBtn" class="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">Save</button>
+          <button id="darkBtn" class="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">Toggle dark</button>
+        </div>
+      </div>
+      <div class="mt-4 flex flex-wrap items-center gap-2 border-t border-slate-200/80 pt-4 dark:border-slate-700/80" id="toolbar">
+        <button class="toolbar-btn rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800" data-action="bold">Bold</button>
+        <button class="toolbar-btn rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800" data-action="italic">Italic</button>
+        <button class="toolbar-btn rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800" data-action="heading">Heading</button>
+        <button class="toolbar-btn rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800" data-action="link">Link</button>
+        <button class="toolbar-btn rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800" data-action="quote">Quote</button>
+        <button class="toolbar-btn rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800" data-action="code">Code</button>
+        <button class="toolbar-btn rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800" data-action="ul">List</button>
+        <button class="toolbar-btn rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800" data-action="ol">Numbered</button>
+        <button class="toolbar-btn rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800" data-action="hr">Rule</button>
+      </div>
+    </header>
+
+    <main class="grid min-h-0 flex-1 gap-3 lg:grid-cols-2">
+      <section class="glass min-h-[60vh] overflow-hidden rounded-3xl border border-white/60 shadow-soft dark:border-slate-700/60">
+        <div class="flex items-center justify-between border-b border-slate-200/80 px-4 py-3 dark:border-slate-700/80">
+          <div>
+            <div class="text-sm font-semibold">Source</div>
+            <div class="text-xs text-slate-500 dark:text-slate-400">Markdown input with live line numbers</div>
+          </div>
+          <div class="text-xs text-slate-500 dark:text-slate-400" id="sourceModeLabel">Editing source</div>
+        </div>
+        <div class="grid min-h-0 flex-1 grid-cols-[4.25rem_1fr]">
+          <div id="lineNumbers" class="editor-scroll select-none overflow-hidden border-r border-slate-200/70 bg-slate-50/60 p-4 font-mono text-sm leading-7 text-slate-400 dark:border-slate-700/70 dark:bg-slate-950/20"></div>
+          <textarea id="source" class="editor-scroll min-h-[60vh] w-full resize-none bg-transparent p-4 font-mono text-sm leading-7 text-slate-800 outline-none dark:text-slate-100" spellcheck="false" placeholder="# Start writing markdown...\n\nTry **bold**, *italic*, [links](https://example.com), code blocks, and more."></textarea>
+        </div>
+      </section>
+
+      <section class="glass min-h-[60vh] overflow-hidden rounded-3xl border border-white/60 shadow-soft dark:border-slate-700/60">
+        <div class="flex items-center justify-between border-b border-slate-200/80 px-4 py-3 dark:border-slate-700/80">
+          <div>
+            <div class="text-sm font-semibold">Preview</div>
+            <div class="text-xs text-slate-500 dark:text-slate-400">Rendered HTML, editable in place</div>
+          </div>
+          <div class="text-xs text-slate-500 dark:text-slate-400" id="previewModeLabel">Editing preview</div>
+        </div>
+        <div id="preview" class="preview preview-scroll editor-scroll min-h-[60vh] overflow-auto p-5 outline-none" contenteditable="true" aria-label="Markdown preview editor"></div>
+      </section>
+    </main>
+
+    <footer class="glass mt-3 rounded-3xl border border-white/60 px-4 py-3 shadow-soft dark:border-slate-700/60">
+      <div class="flex flex-col gap-2 text-sm text-slate-600 dark:text-slate-300 sm:flex-row sm:items-center sm:justify-between">
+        <div class="flex flex-wrap gap-x-4 gap-y-1">
+          <span id="statusFile">No file loaded</span>
+          <span id="statusWords">0 words</span>
+          <span id="statusChars">0 characters</span>
+        </div>
+        <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
+          <span>Shortcuts: Ctrl/Cmd+B, U, I, K, Shift+7, Shift+8</span>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <input id="fileInput" type="file" accept=".md,.markdown,text/markdown" class="hidden" />
+
+  <script>
+    const source = document.getElementById('source');
+    const preview = document.getElementById('preview');
+    const lineNumbers = document.getElementById('lineNumbers');
+    const statusWords = document.getElementById('statusWords');
+    const statusChars = document.getElementById('statusChars');
+    const statusFile = document.getElementById('statusFile');
+    const darkBtn = document.getElementById('darkBtn');
+    const openBtn = document.getElementById('openBtn');
+    const saveBtn = document.getElementById('saveBtn');
+    const toolbar = document.getElementById('toolbar');
+    const fileInput = document.getElementById('fileInput');
+    const sourceModeLabel = document.getElementById('sourceModeLabel');
+    const previewModeLabel = document.getElementById('previewModeLabel');
+
+    const turndownService = new TurndownService({
+      headingStyle: 'atx',
+      codeBlockStyle: 'fenced',
+      bulletListMarker: '-',
+    });
+    turndownService.addRule('underline', {
+      filter: 'u',
+      replacement: (content) => `<u>${content}</u>`,
+    });
+    marked.setOptions({ breaks: true, gfm: true });
+
+    const defaultMarkdown = `# Markdown Studio
+
+A responsive markdown editor with a **live editable preview**.
+
+## Features
+
+- Split-screen source and preview
+- Toolbar formatting actions
+- File open/save support
+- Keyboard shortcuts
+- Dark mode toggle
+
+> Click into the preview and edit directly.
+
+\
+
+\
+
+| Feature | Status |
+| --- | --- |
+| Source editor | Ready |
+| Preview editor | Ready |
+| Sync | Bidirectional |
+`;
+
+    let saveHandle = null;
+    let currentFileName = 'Untitled.md';
+    let isRendering = false;
+    let isPreviewToSource = false;
+    let previewHasFocus = false;
+    let lastSyncedSource = '';
+
+    function setTheme(dark) {
+      document.documentElement.classList.toggle('dark', dark);
+      localStorage.setItem('markdown-studio-theme', dark ? 'dark' : 'light');
+    }
+
+    function updateLineNumbers() {
+      const lineCount = source.value.split('\n').length;
+      lineNumbers.innerHTML = Array.from({ length: lineCount }, (_, i) => `<div>${i + 1}</div>`).join('');
+      lineNumbers.scrollTop = source.scrollTop;
+    }
+
+    function countWords(text) {
+      const trimmed = text.trim();
+      return trimmed ? trimmed.split(/\s+/).length : 0;
+    }
+
+    function updateStatus() {
+      statusWords.textContent = `${countWords(source.value)} words`;
+      statusChars.textContent = `${source.value.length} characters`;
+      statusFile.textContent = currentFileName;
+    }
+
+    function renderMarkdown() {
+      if (isRendering) return;
+      isRendering = true;
+      const html = marked.parse(source.value || '');
+      preview.innerHTML = DOMPurify.sanitize(html, {
+        USE_PROFILES: { html: true },
+      });
+      isRendering = false;
+      syncPreviewEditableState();
+    }
+
+    function syncPreviewEditableState() {
+      preview.querySelectorAll('a').forEach((link) => {
+        link.setAttribute('contenteditable', 'false');
+        link.setAttribute('tabindex', '-1');
+      });
+      preview.querySelectorAll('img, pre, code, table').forEach((node) => {
+        node.setAttribute('contenteditable', 'false');
+      });
+    }
+
+    function syncFromSource() {
+      if (isPreviewToSource) return;
+      updateLineNumbers();
+      updateStatus();
+      renderMarkdown();
+      lastSyncedSource = source.value;
+    }
+
+    function syncSourceFromPreview(options = { renderPreview: false }) {
+      if (isRendering) return;
+      const markdown = turndownService.turndown(preview.innerHTML).trimEnd() + '\n';
+      if (markdown === lastSyncedSource) return;
+      isPreviewToSource = true;
+      source.value = markdown;
+      lastSyncedSource = markdown;
+      updateLineNumbers();
+      updateStatus();
+      sourceModeLabel.textContent = 'Synced from preview';
+      previewModeLabel.textContent = 'Editing preview';
+      if (options.renderPreview) {
+        renderMarkdown();
+      }
+      isPreviewToSource = false;
+    }
+
+    function wrapSelection(prefix, suffix = prefix, block = false) {
+      const start = source.selectionStart;
+      const end = source.selectionEnd;
+      const text = source.value;
+      const selected = text.slice(start, end);
+      const before = text.slice(0, start);
+      const after = text.slice(end);
+
+      let replacement;
+      let newStart;
+      let newEnd;
+
+      if (block) {
+        const lines = selected || '';
+        const transformed = lines.split('\n').map((line) => prefix + line).join('\n');
+        replacement = transformed;
+        newStart = start;
+        newEnd = start + replacement.length;
+      } else if (selected) {
+        replacement = `${prefix}${selected}${suffix}`;
+        newStart = start + prefix.length;
+        newEnd = newStart + selected.length;
+      } else {
+        replacement = `${prefix}${suffix}`;
+        newStart = start + prefix.length;
+        newEnd = newStart;
+      }
+
+      source.value = before + replacement + after;
+      source.setSelectionRange(newStart, newEnd);
+      source.focus();
+      source.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+
+    function insertAtCursor(text) {
+      const start = source.selectionStart;
+      const end = source.selectionEnd;
+      source.setRangeText(text, start, end, 'end');
+      source.focus();
+      source.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+
+    function prefixLines(prefix) {
+      const start = source.selectionStart;
+      const end = source.selectionEnd;
+      const value = source.value;
+      const selected = value.slice(start, end) || value;
+      const transformed = selected.split('\n').map((line) => `${prefix}${line}`).join('\n');
+      source.setRangeText(transformed, start, end, 'end');
+      source.focus();
+      source.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+
+    function togglePreviewEditState() {
+      sourceModeLabel.textContent = 'Editing source';
+      previewModeLabel.textContent = preview.isContentEditable ? 'Editing preview' : 'Preview locked';
+    }
+
+    async function openFileWithFallback() {
+      if ('showOpenFilePicker' in window) {
+        const [fileHandle] = await window.showOpenFilePicker({
+          types: [{ description: 'Markdown', accept: { 'text/markdown': ['.md', '.markdown'] } }],
+          excludeAcceptAllOption: false,
+          multiple: false,
+        });
+        const file = await fileHandle.getFile();
+        const content = await file.text();
+        saveHandle = fileHandle;
+        currentFileName = file.name;
+        source.value = content;
+        source.dispatchEvent(new Event('input', { bubbles: true }));
+        return;
+      }
+      fileInput.value = '';
+      fileInput.click();
+    }
+
+    async function saveFile() {
+      const content = source.value;
+      if (saveHandle && saveHandle.createWritable) {
+        const writable = await saveHandle.createWritable();
+        await writable.write(content);
+        await writable.close();
+        return;
+      }
+      if ('showSaveFilePicker' in window) {
+        saveHandle = await window.showSaveFilePicker({
+          suggestedName: currentFileName,
+          types: [{ description: 'Markdown', accept: { 'text/markdown': ['.md'] } }],
+        });
+        const writable = await saveHandle.createWritable();
+        await writable.write(content);
+        await writable.close();
+        return;
+      }
+      const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = currentFileName || 'document.md';
+      anchor.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function handleShortcut(event) {
+      const mod = event.ctrlKey || event.metaKey;
+      if (!mod) return false;
+      const key = event.key.toLowerCase();
+      if (key === 'b') { event.preventDefault(); wrapSelection('**'); return true; }
+      if (key === 'i') { event.preventDefault(); wrapSelection('*'); return true; }
+      if (key === 'k') {
+        event.preventDefault();
+        const selected = source.value.slice(source.selectionStart, source.selectionEnd) || 'link text';
+        wrapSelection('[', `](https://example.com)`);
+        if (selected === 'link text') {
+          const cursor = source.selectionStart;
+          source.setSelectionRange(cursor + 1, cursor + 1 + selected.length);
+        }
+        return true;
+      }
+      return false;
+    }
+
+    function handleToolbarAction(action) {
+      const selection = source.value.slice(source.selectionStart, source.selectionEnd);
+      switch (action) {
+        case 'bold': wrapSelection('**'); break;
+        case 'italic': wrapSelection('*'); break;
+        case 'heading': insertAtCursor(selection ? `## ${selection}` : '## '); break;
+        case 'link': wrapSelection('[', '](https://example.com)'); break;
+        case 'quote': prefixLines('> '); break;
+        case 'code': selection ? wrapSelection('```\n', '\n```') : insertAtCursor('```\n\n```'); break;
+        case 'ul': prefixLines('- '); break;
+        case 'ol': prefixLines('1. '); break;
+        case 'hr': insertAtCursor('\n---\n'); break;
+      }
+    }
+
+    source.addEventListener('input', () => {
+      if (isPreviewToSource) return;
+      sourceModeLabel.textContent = 'Editing source';
+      updateLineNumbers();
+      updateStatus();
+      if (!previewHasFocus) {
+        renderMarkdown();
+      }
+      lastSyncedSource = source.value;
+    });
+
+    source.addEventListener('scroll', updateLineNumbers);
+
+    source.addEventListener('keydown', (event) => {
+      if (handleShortcut(event)) return;
+      if (event.key === 'Tab') {
+        event.preventDefault();
+        insertAtCursor('  ');
+      }
+    });
+
+    preview.addEventListener('focus', () => {
+      previewHasFocus = true;
+      previewModeLabel.textContent = 'Editing preview';
+    });
+
+    preview.addEventListener('keydown', (event) => {
+      const mod = event.ctrlKey || event.metaKey;
+      if (!mod) return;
+
+      const key = event.key.toLowerCase();
+      if (key === 'b') {
+        event.preventDefault();
+        document.execCommand('bold');
+        syncSourceFromPreview({ renderPreview: false });
+      }
+
+      if (key === 'u') {
+        event.preventDefault();
+        document.execCommand('underline');
+        syncSourceFromPreview({ renderPreview: false });
+      }
+    });
+
+    preview.addEventListener('input', () => {
+      syncSourceFromPreview({ renderPreview: false });
+    });
+
+    preview.addEventListener('blur', () => {
+      previewHasFocus = false;
+      if (!preview.innerHTML.trim()) {
+        preview.innerHTML = '<p><br></p>';
+      }
+      syncSourceFromPreview({ renderPreview: true });
+    });
+
+    preview.addEventListener('paste', (event) => {
+      event.preventDefault();
+      const text = (event.clipboardData || window.clipboardData).getData('text/plain');
+      document.execCommand('insertText', false, text);
+    });
+
+    toolbar.addEventListener('click', (event) => {
+      const button = event.target.closest('[data-action]');
+      if (!button) return;
+      handleToolbarAction(button.dataset.action);
+    });
+
+    darkBtn.addEventListener('click', () => {
+      setTheme(!document.documentElement.classList.contains('dark'));
+    });
+
+    openBtn.addEventListener('click', openFileWithFallback);
+    saveBtn.addEventListener('click', saveFile);
+
+    fileInput.addEventListener('change', async () => {
+      const file = fileInput.files && fileInput.files[0];
+      if (!file) return;
+      const content = await file.text();
+      currentFileName = file.name;
+      saveHandle = null;
+      source.value = content;
+      source.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+
+    window.addEventListener('keydown', (event) => {
+      if (event.ctrlKey || event.metaKey) {
+        const lower = event.key.toLowerCase();
+        if (lower === 's') {
+          event.preventDefault();
+          saveFile();
+        }
+        if (lower === 'o') {
+          event.preventDefault();
+          openFileWithFallback();
+        }
+      }
+    });
+
+    const savedTheme = localStorage.getItem('markdown-studio-theme');
+    setTheme(savedTheme ? savedTheme === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches);
+
+    source.value = defaultMarkdown;
+    source.dispatchEvent(new Event('input', { bubbles: true }));
+    togglePreviewEditState();
+    updateLineNumbers();
+    updateStatus();
+
+    preview.addEventListener('keyup', () => {
+      sourceModeLabel.textContent = 'Editing source';
+    });
+
+    preview.addEventListener('mouseup', () => {
+      preview.focus();
+    });
+
+    // Keep the preview editable by allowing direct typing, then converting it back to markdown.
+    preview.addEventListener('beforeinput', () => {
+      previewModeLabel.textContent = 'Editing preview';
+    });
+
+  </script>
+</body>
+</html>
