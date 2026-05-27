@@ -1,98 +1,30 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Markdown Studio</title>
-  <script src="src/js/app.js"></script>
-        document.execCommand('bold');
-        syncSourceFromPreview({ renderPreview: false });
-      }
-
-      if (key === 'u') {
-        event.preventDefault();
-        document.execCommand('underline');
-        syncSourceFromPreview({ renderPreview: false });
-      }
-    });
-
-    preview.addEventListener('input', () => {
-      syncSourceFromPreview({ renderPreview: false });
-    });
-
-    preview.addEventListener('blur', () => {
-      previewHasFocus = false;
-      if (!preview.innerHTML.trim()) {
-        preview.innerHTML = '<p><br></p>';
-      }
-      syncSourceFromPreview({ renderPreview: true });
-    });
-
-    preview.addEventListener('paste', (event) => {
-      event.preventDefault();
-      const text = (event.clipboardData || window.clipboardData).getData('text/plain');
-      document.execCommand('insertText', false, text);
-    });
-
-    toolbar.addEventListener('click', (event) => {
-      const button = event.target.closest('[data-action]');
-      if (!button) return;
-      handleToolbarAction(button.dataset.action);
-    });
-
-    darkBtn.addEventListener('click', () => {
-      setTheme(!document.documentElement.classList.contains('dark'));
-    });
-
-    openBtn.addEventListener('click', openFileWithFallback);
-    saveBtn.addEventListener('click', saveFile);
-
-    fileInput.addEventListener('change', async () => {
-      const file = fileInput.files && fileInput.files[0];
-      if (!file) return;
-      const content = await file.text();
-      currentFileName = file.name;
-      saveHandle = null;
-      source.value = content;
-      source.dispatchEvent(new Event('input', { bubbles: true }));
-    });
-
-    window.addEventListener('keydown', (event) => {
-      if (event.ctrlKey || event.metaKey) {
-        const lower = event.key.toLowerCase();
-        if (lower === 's') {
-          event.preventDefault();
-          saveFile();
-        }
-        if (lower === 'o') {
-          event.preventDefault();
-          openFileWithFallback();
-        }
-      }
-    });
-
-    const savedTheme = localStorage.getItem('markdown-studio-theme');
-    setTheme(savedTheme ? savedTheme === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches);
-
-    source.value = defaultMarkdown;
-    source.dispatchEvent(new Event('input', { bubbles: true }));
-    togglePreviewEditState();
-    updateLineNumbers();
-    updateStatus();
-
-    preview.addEventListener('keyup', () => {
-      sourceModeLabel.textContent = 'Editing source';
-    });
-
-    preview.addEventListener('mouseup', () => {
-      preview.focus();
-    });
-
-    // Keep the preview editable by allowing direct typing, then converting it back to markdown.
-    preview.addEventListener('beforeinput', () => {
-      previewModeLabel.textContent = 'Editing preview';
-    });
-
-  </script>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Markdown Studio</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+              mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
+            },
+            boxShadow: {
+              soft: '0 20px 60px rgba(15, 23, 42, 0.18)',
+            },
+          },
+        },
+      };
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
 </html>
