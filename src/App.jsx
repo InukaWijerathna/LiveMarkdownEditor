@@ -47,6 +47,7 @@ function App() {
   const [previewHasFocus, setPreviewHasFocus] = useState(false)
   const [sourceModeLabel, setSourceModeLabel] = useState('Editing source')
   const [previewModeLabel, setPreviewModeLabel] = useState('Editing preview')
+  const [isDark, setIsDark] = useState(false)
 
   const turndownService = useMemo(() => {
     const service = new TurndownService({
@@ -70,7 +71,8 @@ function App() {
   const setTheme = useCallback((dark) => {
     document.documentElement.classList.toggle('dark', dark)
     localStorage.setItem('markdown-studio-theme', dark ? 'dark' : 'light')
-  }, [])
+    setIsDark(!!dark)
+  }, [setIsDark])
 
   const syncPreviewEditableState = useCallback(() => {
     if (!previewRef.current) return
@@ -153,6 +155,44 @@ function App() {
 
   const handleToolbarAction = useCallback(
     (action) => {
+      // If preview has focus, apply formatting directly to the contentEditable preview
+      if (previewHasFocus && previewRef.current) {
+        switch (action) {
+          case 'bold':
+            document.execCommand('bold')
+            break
+          case 'italic':
+            document.execCommand('italic')
+            break
+          case 'heading':
+            document.execCommand('formatBlock', false, 'H2')
+            break
+          case 'link':
+            document.execCommand('insertHTML', false, '<a href="https://example.com">https://example.com</a>')
+            break
+          case 'quote':
+            document.execCommand('insertHTML', false, '<blockquote><p></p></blockquote>')
+            break
+          case 'code':
+            document.execCommand('insertHTML', false, '<pre><code></code></pre>')
+            break
+          case 'ul':
+            document.execCommand('insertUnorderedList')
+            break
+          case 'ol':
+            document.execCommand('insertOrderedList')
+            break
+          case 'hr':
+            document.execCommand('insertHTML', false, '<hr />')
+            break
+          default:
+            break
+        }
+
+        // After manipulating the preview DOM, sync back to markdown
+        syncSourceFromPreview()
+        return
+      }
       const textarea = sourceRef.current
       const selection = textarea
         ? textarea.value.slice(textarea.selectionStart, textarea.selectionEnd)
@@ -257,6 +297,28 @@ function App() {
     anchor.click()
     URL.revokeObjectURL(url)
   }, [markdown, currentFileName])
+
+  const handleOpenClick = useCallback(async () => {
+    try {
+      await openFileWithFallback()
+    } catch (err) {
+      console.error(err)
+      alert('Failed to open file: ' + (err && err.message ? err.message : err))
+    }
+  }, [openFileWithFallback])
+
+  const handleSaveClick = useCallback(async () => {
+    try {
+      await saveFile()
+    } catch (err) {
+      console.error(err)
+      alert('Failed to save file: ' + (err && err.message ? err.message : err))
+    }
+  }, [saveFile])
+
+  const handleToggleThemeClick = useCallback(() => {
+    setTheme(!isDark)
+  }, [setTheme, isDark])
 
   const handleSourceKeyDown = useCallback(
     (event) => {
@@ -363,22 +425,43 @@ function App() {
             </div>
             <div className="flex flex-wrap gap-2">
               <button
+                type="button"
+                aria-label="Open file"
                 className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
-                onClick={openFileWithFallback}
+                onClick={handleOpenClick}
               >
-                Open
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+                </svg>
               </button>
               <button
+                type="button"
+                aria-label="Save file"
                 className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
-                onClick={saveFile}
+                onClick={handleSaveClick}
               >
-                Save
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+                  <polyline points="17 21 17 13 7 13 7 21" />
+                  <polyline points="7 3 7 8 15 8" />
+                </svg>
               </button>
               <button
+                type="button"
+                aria-label="Toggle dark theme"
                 className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
-                onClick={() => setTheme(!document.documentElement.classList.contains('dark'))}
+                onClick={handleToggleThemeClick}
               >
-                Toggle dark
+                {isDark ? (
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <circle cx="12" cy="12" r="3" />
+                    <path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+                  </svg>
+                ) : (
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                  </svg>
+                )}
               </button>
             </div>
           </div>
@@ -504,7 +587,7 @@ function App() {
               <span>Shortcuts: Ctrl/Cmd+B, Ctrl/Cmd+U, Ctrl/Cmd+I, Ctrl/Cmd+K, Ctrl/Cmd+Shift+7, Ctrl/Cmd+Shift+8</span>
             </div>
           </div>
-            <div className="mt-2 text-center text-xs text-slate-500 dark:text-slate-400">© @inukaWijerathna</div>
+            <div className="mt-2 text-center text-xs text-slate-500 dark:text-slate-400">© 2026 @InukaWijerathna</div>
         </footer>
 
         {/* Fixed bottom toolbar */}
