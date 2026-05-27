@@ -1,0 +1,13 @@
+{
+  "rewrites": [
+    { "source": "/LiveMarkdownEditor", "destination": "/" },
+    { "source": "/LiveMarkdownEditor/", "destination": "/" },
+    { "source": "/LiveMarkdownEditor/:path*", "destination": "/:path*" },
+
+    { "source": "/assets/:path*", "destination": "/assets/:path*" },
+    { "source": "/favicon/:path*", "destination": "/favicon/:path*" },
+    { "source": "/favicon.ico", "destination": "/favicon.ico" },
+
+    { "source": "/(.*)", "destination": "https://InukaWijerathna.github.io/$1" }
+  ]
+}
