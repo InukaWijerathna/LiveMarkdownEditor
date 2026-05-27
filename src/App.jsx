@@ -382,17 +382,7 @@ function App() {
               </button>
             </div>
           </div>
-          <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-slate-200/80 pt-4 dark:border-slate-700/80">
-            <button className="toolbar-btn rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800" onClick={() => handleToolbarAction('bold')}>Bold</button>
-            <button className="toolbar-btn rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800" onClick={() => handleToolbarAction('italic')}>Italic</button>
-            <button className="toolbar-btn rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800" onClick={() => handleToolbarAction('heading')}>Heading</button>
-            <button className="toolbar-btn rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800" onClick={() => handleToolbarAction('link')}>Link</button>
-            <button className="toolbar-btn rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800" onClick={() => handleToolbarAction('quote')}>Quote</button>
-            <button className="toolbar-btn rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800" onClick={() => handleToolbarAction('code')}>Code</button>
-            <button className="toolbar-btn rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800" onClick={() => handleToolbarAction('ul')}>List</button>
-            <button className="toolbar-btn rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800" onClick={() => handleToolbarAction('ol')}>Numbered</button>
-            <button className="toolbar-btn rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800" onClick={() => handleToolbarAction('hr')}>Rule</button>
-          </div>
+          
         </header>
 
         <main className="grid min-h-0 flex-1 gap-3 lg:grid-cols-2">
@@ -514,7 +504,23 @@ function App() {
               <span>Shortcuts: Ctrl/Cmd+B, Ctrl/Cmd+U, Ctrl/Cmd+I, Ctrl/Cmd+K, Ctrl/Cmd+Shift+7, Ctrl/Cmd+Shift+8</span>
             </div>
           </div>
+            <div className="mt-2 text-center text-xs text-slate-500 dark:text-slate-400">© @inukaWijerathna</div>
         </footer>
+
+        {/* Fixed bottom toolbar */}
+        <div className="fixed bottom-6 left-0 right-0 z-50 flex justify-center px-4">
+          <div className="glass inline-flex items-center gap-2 rounded-full border border-white/60 px-3 py-2 shadow-soft dark:border-slate-700/60">
+            <button className="toolbar-btn rounded-md px-3 py-1 text-sm font-medium" onClick={() => handleToolbarAction('bold')}>Bold</button>
+            <button className="toolbar-btn rounded-md px-3 py-1 text-sm font-medium" onClick={() => handleToolbarAction('italic')}>Italic</button>
+            <button className="toolbar-btn rounded-md px-3 py-1 text-sm font-medium" onClick={() => handleToolbarAction('heading')}>Heading</button>
+            <button className="toolbar-btn rounded-md px-3 py-1 text-sm font-medium" onClick={() => handleToolbarAction('link')}>Link</button>
+            <button className="toolbar-btn rounded-md px-3 py-1 text-sm font-medium" onClick={() => handleToolbarAction('quote')}>Quote</button>
+            <button className="toolbar-btn rounded-md px-3 py-1 text-sm font-medium" onClick={() => handleToolbarAction('code')}>Code</button>
+            <button className="toolbar-btn rounded-md px-3 py-1 text-sm font-medium" onClick={() => handleToolbarAction('ul')}>List</button>
+            <button className="toolbar-btn rounded-md px-3 py-1 text-sm font-medium" onClick={() => handleToolbarAction('ol')}>Numbered</button>
+            <button className="toolbar-btn rounded-md px-3 py-1 text-sm font-medium" onClick={() => handleToolbarAction('hr')}>Rule</button>
+          </div>
+        </div>
       </div>
 
       <input
