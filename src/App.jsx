@@ -48,7 +48,8 @@ function App() {
   const [sourceModeLabel, setSourceModeLabel] = useState('Editing source')
   const [previewModeLabel, setPreviewModeLabel] = useState('Editing preview')
   const [isDark, setIsDark] = useState(false)
-  const [toolbarPos, setToolbarPos] = useState({ x: 16, y: 0 })
+  const [toolbarPos, setToolbarPos] = useState({ x: 16, y: 140 })
+  const [isDraggingToolbar, setIsDraggingToolbar] = useState(false)
   const toolbarRef = useRef(null)
   const draggingRef = useRef(false)
   const dragStartRef = useRef({ mouseX: 0, mouseY: 0, x: 0, y: 0 })
@@ -112,17 +113,21 @@ function App() {
   )
 
   const wrapSelection = useCallback(
-    (prefix, suffix = prefix) => {
+    (prefix, suffix = prefix, placeholder = '') => {
       applySourceMutation((textarea) => {
         const start = textarea.selectionStart
         const end = textarea.selectionEnd
         const selected = textarea.value.slice(start, end)
-        const replacement = selected ? `${prefix}${selected}${suffix}` : `${prefix}${suffix}`
+        const replacement = selected
+          ? `${prefix}${selected}${suffix}`
+          : `${prefix}${placeholder}${suffix}`
 
         textarea.setRangeText(replacement, start, end, 'end')
 
         const cursorStart = start + prefix.length
-        const cursorEnd = selected ? cursorStart + selected.length : cursorStart
+        const cursorEnd = selected
+          ? cursorStart + selected.length
+          : cursorStart + placeholder.length
         textarea.setSelectionRange(cursorStart, cursorEnd)
       })
     },
@@ -172,7 +177,7 @@ function App() {
             document.execCommand('formatBlock', false, 'H2')
             break
           case 'link':
-            document.execCommand('insertHTML', false, '<a href="https://example.com">https://example.com</a>')
+            document.execCommand('insertHTML', false, '<a href="https://www.inukawijerathna.me/LiveMarkdownEditor">https://www.inukawijerathna.me/LiveMarkdownEditor</a>')
             break
           case 'quote':
             document.execCommand('insertHTML', false, '<blockquote><p></p></blockquote>')
@@ -204,7 +209,7 @@ function App() {
 
       switch (action) {
         case 'bold':
-          wrapSelection('**')
+          wrapSelection('**', '**', 'bold text')
           break
         case 'italic':
           wrapSelection('*')
@@ -213,7 +218,7 @@ function App() {
           insertAtCursor(selection ? `## ${selection}` : '## ')
           break
         case 'link':
-          wrapSelection('[', '](https://example.com)')
+          wrapSelection('[', '](https://www.inukawijerathna.me/LiveMarkdownEditor)')
           break
         case 'quote':
           prefixLines('> ')
@@ -332,7 +337,7 @@ function App() {
 
       if (mod && (key === 'b' || (shift && key === 'b'))) {
         event.preventDefault()
-        wrapSelection('**')
+        wrapSelection('**', '**', 'bold text')
         return
       }
 
@@ -350,7 +355,7 @@ function App() {
 
       if (mod && key === 'k') {
         event.preventDefault()
-        wrapSelection('[', '](https://example.com)')
+        wrapSelection('[', '](https://www.inukawijerathna.me/LiveMarkdownEditor)')
         return
       }
 
@@ -378,9 +383,9 @@ function App() {
     const savedTheme = localStorage.getItem('markdown-studio-theme')
     setTheme(savedTheme ? savedTheme === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches)
 
-    // initialize toolbar center position after mount
+    // initialize toolbar a bit above center after mount
     const onLoad = () => {
-      const midY = Math.round(window.innerHeight / 2)
+      const midY = Math.round(window.innerHeight * 0.28)
       setToolbarPos((p) => ({ ...p, y: midY }))
     }
 
@@ -399,13 +404,14 @@ function App() {
 
     const onUp = () => {
       draggingRef.current = false
+      setIsDraggingToolbar(false)
       window.removeEventListener('mousemove', onMove)
       window.removeEventListener('mouseup', onUp)
       window.removeEventListener('touchmove', onMove)
       window.removeEventListener('touchend', onUp)
     }
 
-    if (draggingRef.current) {
+    if (isDraggingToolbar) {
       window.addEventListener('mousemove', onMove)
       window.addEventListener('mouseup', onUp)
       window.addEventListener('touchmove', onMove)
@@ -418,12 +424,13 @@ function App() {
       window.removeEventListener('touchmove', onMove)
       window.removeEventListener('touchend', onUp)
     }
-  }, [toolbarRef])
+  }, [isDraggingToolbar])
 
   const startDrag = (e) => {
     // don't start drag when clicking buttons
-    if (e.target.closest('button')) return
+    if (e.target instanceof Element && e.target.closest('button')) return
     draggingRef.current = true
+    setIsDraggingToolbar(true)
     const clientX = e.clientX !== undefined ? e.clientX : (e.touches && e.touches[0].clientX)
     const clientY = e.clientY !== undefined ? e.clientY : (e.touches && e.touches[0].clientY)
     dragStartRef.current = { mouseX: clientX, mouseY: clientY, x: toolbarPos.x, y: toolbarPos.y }
@@ -532,7 +539,7 @@ function App() {
                 ref={sourceRef}
                 className="editor-scroll min-h-[60vh] w-full resize-none bg-transparent p-4 font-mono text-sm leading-7 text-slate-800 outline-none dark:text-slate-100"
                 spellCheck="false"
-                placeholder="# Start writing markdown...\n\nTry **bold**, *italic*, [links](https://example.com), code blocks, and more."
+                placeholder="# Start writing markdown...\n\nTry **bold**, *italic*, [links](https://www.inukawijerathna.me/LiveMarkdownEditor), code blocks, and more."
                 value={markdown}
                 onChange={(event) => updateFromSource(event.target.value)}
                 onKeyDown={handleSourceKeyDown}
@@ -619,28 +626,34 @@ function App() {
         </main>
 
         <footer className="w-full mt-6 border-t py-3">
-          <div className="max-w-[1600px] mx-auto px-3 flex items-center justify-between text-sm text-slate-600 dark:text-slate-300">
-            <div className="flex gap-4 items-center">
+          <div className="max-w-[1600px] mx-auto px-3 grid grid-cols-3 items-center text-sm text-slate-600 dark:text-slate-300">
+            <div className="flex gap-4 items-center justify-start">
               <span>{currentFileName}</span>
               <span>{wordCount} words</span>
               <span>{charCount} characters</span>
             </div>
-            <div className="text-xs text-slate-500 dark:text-slate-400">© 2026 @InukaWijerathna</div>
+            <div className="text-center text-base font-semibold text-slate-700 dark:text-slate-200">© 2026 @InukaWijerathna</div>
+            <div />
           </div>
         </footer>
 
-        {/* Left floating toolbar (vertical) */}
-        <div className="fixed left-4 top-[55%] z-50">
+        {/* Left floating toolbar (vertical, draggable) */}
+        <div
+          ref={toolbarRef}
+          onMouseDown={startDrag}
+          onTouchStart={startDrag}
+          style={{ position: 'fixed', left: toolbarPos.x, top: toolbarPos.y, zIndex: 50 }}
+        >
           <div className="glass flex flex-col items-center gap-2 rounded-2xl border border-white/60 px-2 py-3 shadow-soft dark:border-slate-700/60">
-            <button title="Bold" type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => handleToolbarAction('bold')} className="p-2">
+            <button title="Bold" type="button" onMouseDown={(e) => { e.preventDefault(); e.stopPropagation() }} onClick={() => handleToolbarAction('bold')} className="p-2">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M7 7h4a3 3 0 0 1 0 6H7z"/><path d="M7 13h5a3 3 0 0 1 0 6H7z"/></svg>
             </button>
 
-            <button title="Italic" type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => handleToolbarAction('italic')} className="p-2">
+            <button title="Italic" type="button" onMouseDown={(e) => { e.preventDefault(); e.stopPropagation() }} onClick={() => handleToolbarAction('italic')} className="p-2">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="4" x2="10" y2="4"/><line x1="14" y1="20" x2="5" y2="20"/><line x1="15" y1="4" x2="9" y2="20"/></svg>
             </button>
 
-            <button title="Heading" type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => handleToolbarAction('heading')} className="p-2">
+            <button title="Heading" type="button" onMouseDown={(e) => { e.preventDefault(); e.stopPropagation() }} onClick={() => handleToolbarAction('heading')} className="p-2">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M6 4v16" />
                 <path d="M18 4v16" />
@@ -648,25 +661,25 @@ function App() {
               </svg>
             </button>
 
-            <button title="Link" type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => handleToolbarAction('link')} className="p-2">
+            <button title="Link" type="button" onMouseDown={(e) => { e.preventDefault(); e.stopPropagation() }} onClick={() => handleToolbarAction('link')} className="p-2">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10 14a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 10a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg>
             </button>
 
-            <button title="Quote" type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => handleToolbarAction('quote')} className="p-2">
+            <button title="Quote" type="button" onMouseDown={(e) => { e.preventDefault(); e.stopPropagation() }} onClick={() => handleToolbarAction('quote')} className="p-2">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M21 8v6a2 2 0 0 1-2 2h-3v3l-4-3H7a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2z" />
               </svg>
             </button>
 
-            <button title="Code" type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => handleToolbarAction('code')} className="p-2">
+            <button title="Code" type="button" onMouseDown={(e) => { e.preventDefault(); e.stopPropagation() }} onClick={() => handleToolbarAction('code')} className="p-2">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
             </button>
 
-            <button title="Bulleted list" type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => handleToolbarAction('ul')} className="p-2">
+            <button title="Bulleted list" type="button" onMouseDown={(e) => { e.preventDefault(); e.stopPropagation() }} onClick={() => handleToolbarAction('ul')} className="p-2">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="3.5" cy="6" r="0.5"/><circle cx="3.5" cy="12" r="0.5"/><circle cx="3.5" cy="18" r="0.5"/></svg>
             </button>
 
-            <button title="Numbered list" type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => handleToolbarAction('ol')} className="p-2">
+            <button title="Numbered list" type="button" onMouseDown={(e) => { e.preventDefault(); e.stopPropagation() }} onClick={() => handleToolbarAction('ol')} className="p-2">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" aria-hidden="true">
                 <text x="2" y="6.8" fontSize="6" fill="currentColor">1</text>
                 <line x1="8" y1="6" x2="21" y2="6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
@@ -677,7 +690,7 @@ function App() {
               </svg>
             </button>
 
-            <button title="Horizontal rule" type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => handleToolbarAction('hr')} className="p-2">
+            <button title="Horizontal rule" type="button" onMouseDown={(e) => { e.preventDefault(); e.stopPropagation() }} onClick={() => handleToolbarAction('hr')} className="p-2">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"/></svg>
             </button>
           </div>
