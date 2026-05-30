@@ -1,6 +1,6 @@
-# LiveMarkdownEditor (React + Vite)
+# LiveMarkdownEditor
 
-Split-screen Markdown editor with editable preview, now running on React + Vite.
+Split-screen Markdown editor with editable preview, now running Online.
 
 ## Features
 
